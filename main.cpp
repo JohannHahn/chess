@@ -5,10 +5,10 @@
 float window_width = 900;
 float window_height = 600;
 Texture grid_tex;
-Texture pieces_tex[12];
+Texture pieces_tex[pieces_max];
 Texture select_tex;
 Rectangle board_area;
-Rectangle move_highlights[64] = { 0 };
+Rectangle move_highlights[BOARD_DIM * BOARD_DIM] = {0};
 const char* assets_path = "assets\\";
 const char* img_path = "assets\\img\\";
 float cell_size;
@@ -23,9 +23,9 @@ bool dragging = 0;
 void load_assets() 
 {
 	std::string path = img_path;
-	for (int i = 0; i < 12; ++i) {
-		path += i < 6 ? "b_" : "w_";
-		int rel_i = i % 6;
+	for (int i = 0; i < pieces_max; ++i) {
+		path += i < PIECE_TYPES ? "b_" : "w_";
+		int rel_i = i % PIECE_TYPES;
 		switch (rel_i) {
 		case 0:
 			path += "pawn.png";
@@ -57,10 +57,10 @@ void load_assets()
 }
 Image draw_grid(int width, int height) 
 {
-	int side = std::min(width, height) / 8;
+	int side = std::min(width, height) / BOARD_DIM;
 	Image grid = GenImageColor(width, height, dark);
-	for (int y = 0; y < 8; ++y) {
-		for (int x = 0; x < 8; ++x) {
+	for (int y = 0; y < BOARD_DIM; ++y) {
+		for (int x = 0; x < BOARD_DIM; ++x) {
 			Color c = (x + y) % 2 == 0 ? light: dark;
 			ImageDrawRectangle(&grid, side * x, side * y, side, side, c);
 		}
@@ -78,8 +78,8 @@ void draw_board(Rectangle board_area)
 {
 	DrawTexture(grid_tex, 0, 0, WHITE);
 	u32 counter = 0;
-	for (u32 y = 0; y < 8; ++y) {
-		for (u32 x = 0; x < 8; ++x) {
+	for (u32 y = 0; y < BOARD_DIM; ++y) {
+		for (u32 x = 0; x < BOARD_DIM; ++x) {
 			int tex = -1;
 			for (int i = 0; i < pieces_max; ++i) {
 				if (BOARD_AT(x, y, game.pieces[i])) {
@@ -101,7 +101,7 @@ void draw_board(Rectangle board_area)
 			if (tex >= 0) {
 				draw_piece(tex, dst);
 			}
-			if (game.selected && (game.current_moves >> ((x)+(y) * 8) & u64(1)))
+			if (game.selected && (game.current_moves >> INDEX(x, y) & u64(1)))
 			{
 				Rectangle dst =	Rectangle(screen_coords.x * cell_size + cell_size / 2.f, screen_coords.y * cell_size + cell_size / 2.f, cell_size / 10.f, cell_size / 10.f);
 				move_highlights[counter++] = dst;
@@ -119,7 +119,7 @@ void resize()
 	window_height = (float)GetScreenHeight();
 	float side = std::min(window_width, window_height);
 	board_area = Rectangle(0, 0, side, side);
-	cell_size = side / 8.f;
+	cell_size = side / (float)BOARD_DIM;
 	Image img = draw_grid((int)window_width, (int)window_height);
 	UnloadTexture(grid_tex);
 	grid_tex = LoadTextureFromImage(img);
@@ -133,8 +133,8 @@ void controls()
 		float x = std::floor(mouse_pos.x / cell_size);
 		float y = std::floor(mouse_pos.y / cell_size);
 		vector2 game_coords = game.translate_coords(vector2(x,y));
-		int start = (game.player ? 0 : 6);
-		for (int i = start; i < start + 6; ++i) {
+		int start = (game.player ? 0 : PIECE_TYPES);
+		for (int i = start; i < start + PIECE_TYPES; ++i) {
 			if (BOARD_AT(game_coords.x, game_coords.y, game.pieces[i])) {
 				game.dragging_map = i;
 				draggie = game_coords;
