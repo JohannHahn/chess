@@ -14,7 +14,16 @@ typedef uint8_t u8;
 #define BOARD_RESET(x, y, board) (board &= ~(u64(1) << INDEX(x, y))) 
 #define BOARD_SET(x, y, board) (board |= (u64(1) << INDEX(x, y)))
 #define IN_FIELD(x) ((x) >= 0 && (x) < BOARD_DIM)
+#define IN_FIELD2(x,y) IN_FIELD(x) && IN_FIELD(y)
 
+enum 
+{
+	black, white  
+};
+enum
+{
+	pawn, knight, bishop, rook, king, queen
+};
 enum piece_index 
 {
 	b_pawn, b_knight, b_bishop, b_rook, b_king, b_queen,
@@ -67,6 +76,7 @@ public:
 	u64 pawn_attacks(u32 x, u32 y, bool white);
 	u64 get_piece_mask(bool white);
 	u64 pawn_moves(u32 x, u32 y, bool white);
+	u64 knight_moves(u32 x, u32 y, bool white);
 	u64 legal_moves(u32 x, u32 y, int type);
 	void move(vector2 org, vector2 dst, u64& player_pieces);
 	void init_board();
