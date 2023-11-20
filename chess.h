@@ -11,7 +11,9 @@ typedef uint8_t u8;
 #define PIECE_TYPES 6
 #define INDEX(x, y) ((x) + (y) * BOARD_DIM)
 #define BOARD_AT(x, y, board) ((board >> INDEX(x, y) & u64(1)))
+#define BOARD_AT_I(i, board) ((board >> i & u64(1)))
 #define BOARD_RESET(x, y, board) (board &= ~(u64(1) << INDEX(x, y))) 
+#define BOARD_RESET_I(i, board) (board &= ~(u64(1) << i)) 
 #define BOARD_SET(x, y, board) (board |= (u64(1) << INDEX(x, y)))
 #define IN_FIELD(x) ((x) >= 0 && (x) < BOARD_DIM)
 #define IN_FIELD2(x,y) IN_FIELD(x) && IN_FIELD(y)
@@ -95,12 +97,13 @@ public:
 	u64 pieces[pieces_max] = { 0 };
 	u64 white_pieces = 0;
 	u64 black_pieces = 0;
+	u64 en_passant = 0;
 
 	u64 pawn_attacks(u32 x, u32 y, bool white);
 	u64 get_piece_mask(bool white);
 	u64 pawn_moves(u32 x, u32 y, bool white);
 	u64 knight_moves(u32 x, u32 y, bool white);
-	u64 sliding_piece(u32 x, u32 y, int type);
+	u64 sliding_piece(u32 x, u32 y, int type, bool white);
 	u64 legal_moves(u32 x, u32 y, int type);
 	void move(vector2 org, vector2 dst, u64& player_pieces);
 	void init_board();
@@ -123,5 +126,8 @@ public:
 
 private:
 	vector2i sliding_dirs[4] = { {-1, 1}, {1, 1}, {1, 0}, {0, 1}};
+	bool passant = false;
+	bool passant_take = false;
+	vector2 passant_take_index = { (u32)0, (u32)0 };
 };
 
