@@ -32,6 +32,17 @@ void chess::move(vector2 org, vector2 dst, u64& player_pieces)
 	white_pieces = get_piece_mask(white);
 	black_pieces = get_piece_mask(black);
 	player = !player;
+	if (!passant) {
+		en_passant = 0;
+	}
+	else {
+		passant = false;
+	}
+	
+	std::cout << "passant = " << passant << "\n";
+	std::cout << "en_passant = " << en_passant << "\n";
+	std::cout << "passant_take = " << passant_take << "\n";
+	std::cout << "passtant take pos = " << passant_take_index.x << ", " << passant_take_index.y << "\n";
 }
 u64 chess::legal_moves(u32 x, u32 y, int type)
 {
@@ -46,12 +57,6 @@ u64 chess::legal_moves(u32 x, u32 y, int type)
 	}
 	else {
 		moves = sliding_piece(x, y, type_reduced, white);
-	}
-	if (!passant) {
-		en_passant = 0;
-	}
-	else {
-		passant = false;
 	}
 	return moves;
 }
