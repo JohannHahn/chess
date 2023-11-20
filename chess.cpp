@@ -10,10 +10,10 @@ void chess::init_board()
 	pieces[b_bishop] = (u64)0b00100100 << (u64)(8 * 7);
 	pieces[w_rook] = 0b10000001;
 	pieces[b_rook] = (u64)0b10000001 << (u64)(8 * 7);
-	pieces[w_queen] = 0b00010000;
-	pieces[b_queen] = (u64)0b00010000 << (u64)(8 * 7);
-	pieces[w_king] =  0b00001000;
-	pieces[b_king] =  (u64)0b00001000 << (u64)(8 * 7);
+	pieces[w_queen] = 0b00001000;
+	pieces[b_queen] = pieces[w_queen] << (u64)(8 * 7);
+	pieces[w_king] =  0b00010000;
+	pieces[b_king] =  pieces[w_king] << (u64)(8 * 7);
 	white_pieces = get_piece_mask(white);
 	black_pieces = get_piece_mask(black);
 }
@@ -31,19 +31,22 @@ void chess::move(vector2 org, vector2 dst, u64& player_pieces)
 }
 u64 chess::legal_moves(u32 x, u32 y, int type)
 {
-	u64 mv = 0;
+	u64 moves = 0;
 	bool white = type >= PIECE_TYPES;
-	switch (type % PIECE_TYPES) {
-	case pawn:
-		mv = pawn_moves(x, y, white);
-		break;
-	case knight:
-		mv = knight_moves(x, y, white);
-	default:
-		break;
+	int type_reduced = type % PIECE_TYPES;
+	if (type_reduced == pawn) {
+		moves = pawn_moves(x, y, white);
+	}
+	else if (type_reduced == knight) {
+		moves = knight_moves(x, y, white);
+	}
+	else if (type_reduced == king) {
+	}
+	else {
+		moves = sliding_piece(x, y, type_reduced);
 	}
 	// pawn
-	return mv;
+	return moves;
 }
 
 u64 chess::pawn_moves(u32 x, u32 y, bool white)
@@ -77,6 +80,22 @@ u64 chess::knight_moves(u32 x, u32 y, bool white)
 		}
 	}
 	moves &= ~(white ? white_pieces : black_pieces);
+	return moves;
+}
+u64 chess::sliding_piece(u32 x, u32 y, int type)
+{
+	u64 moves = 0;
+	u32 num_dirs = 2;
+	u32 start = 0;
+	if (type == rook) start = 2;
+	if (type == queen) num_dirs = 4;
+	for (u32 i = start; i < start + num_dirs; ++i) {
+		vector2i dir = sliding_dirs[i];
+		vector2i new_pos = vector2i(x + dir.x, y + dir.y);
+		if (IN_FIELD2(new_pos.x, new_pos.y)) {
+			BOARD_SET(new_pos.x, new_pos.y, moves);
+		}
+	}
 	return moves;
 }
 u64 chess::get_piece_mask(bool white)

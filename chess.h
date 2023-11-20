@@ -32,6 +32,7 @@ enum piece_index
 };
 
 struct vector2f;
+struct vector2i;
 struct vector2
 {
 	u32 x;
@@ -40,6 +41,7 @@ struct vector2
 	vector2(u32 x, u32 y): x(x), y(y){};
 	vector2(float x, float y): x((u32)x), y((u32)y){};
 	vector2(vector2f v);
+	vector2(vector2i v);
 };
 struct vector2f
 {
@@ -53,7 +55,28 @@ struct vector2f
 		y = (float)v.y;
 	}
 };
+struct vector2i
+{
+	int x;
+	int y;
+	vector2i() { x = 0; y = 0; };
+	vector2i(int x, int y): x(x), y(y){};
+	vector2i(u32 x, u32 y): x((int)x), y((int)y){};
+	vector2i(vector2 v) {
+		x = (int)v.x;
+		y = (int)v.y;
+	}
+	vector2i(vector2f v) {
+		x = (int)v.x;
+		y = (int)v.y;
+	}
+};
 inline vector2::vector2(vector2f v)
+{
+	x = (u32)v.x;
+	y = (u32)v.y;
+}
+inline vector2::vector2(vector2i v)
 {
 	x = (u32)v.x;
 	y = (u32)v.y;
@@ -77,6 +100,7 @@ public:
 	u64 get_piece_mask(bool white);
 	u64 pawn_moves(u32 x, u32 y, bool white);
 	u64 knight_moves(u32 x, u32 y, bool white);
+	u64 sliding_piece(u32 x, u32 y, int type);
 	u64 legal_moves(u32 x, u32 y, int type);
 	void move(vector2 org, vector2 dst, u64& player_pieces);
 	void init_board();
@@ -98,5 +122,6 @@ public:
 	}
 
 private:
+	vector2i sliding_dirs[4] = { {-1, 1}, {1, 1}, {1, 0}, {0, 1}};
 };
 

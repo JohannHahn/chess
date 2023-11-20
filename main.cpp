@@ -40,10 +40,10 @@ void load_assets()
 			path += "rook.png";
 			break;
 		case 4:
-			path += "queen.png";
+			path += "king.png";
 			break;
 		case 5:
-			path += "king.png";
+			path += "queen.png";
 			break;
 		default:
 			break;
