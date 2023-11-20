@@ -38,7 +38,6 @@ void chess::move(vector2 org, vector2 dst, u64& player_pieces)
 	else {
 		passant = false;
 	}
-	
 	std::cout << "passant = " << passant << "\n";
 	std::cout << "en_passant = " << en_passant << "\n";
 	std::cout << "passant_take = " << passant_take << "\n";
