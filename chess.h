@@ -3,6 +3,7 @@
 #ifndef DEFINITIONS 
 #define DEFINITIONS
 #include <iostream>
+#include <unordered_map>
 typedef uint64_t u64;
 typedef uint32_t u32;
 typedef uint16_t u16;
@@ -126,8 +127,8 @@ public:
 
 private:
 	vector2i sliding_dirs[4] = { {-1, 1}, {1, 1}, {1, 0}, {0, 1}};
-	bool passant = false;
 	bool passant_take = false;
 	vector2 passant_take_index = { (u32)0, (u32)0 };
+	std::unordered_map<u64, u64> move_cache;
 };
 

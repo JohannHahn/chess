@@ -32,13 +32,7 @@ void chess::move(vector2 org, vector2 dst, u64& player_pieces)
 	white_pieces = get_piece_mask(white);
 	black_pieces = get_piece_mask(black);
 	player = !player;
-	if (!passant) {
-		en_passant = 0;
-	}
-	else {
-		passant = false;
-	}
-	std::cout << "passant = " << passant << "\n";
+	move_cache.clear();
 	std::cout << "en_passant = " << en_passant << "\n";
 	std::cout << "passant_take = " << passant_take << "\n";
 	std::cout << "passtant take pos = " << passant_take_index.x << ", " << passant_take_index.y << "\n";
@@ -46,40 +40,51 @@ void chess::move(vector2 org, vector2 dst, u64& player_pieces)
 u64 chess::legal_moves(u32 x, u32 y, int type)
 {
 	u64 moves = 0;
-	bool white = type >= PIECE_TYPES;
-	int type_reduced = type % PIECE_TYPES;
-	if (type_reduced == pawn) {
-		moves = pawn_moves(x, y, white);
+	if (!move_cache.contains(INDEX(x, y))) {
+
+		bool white = type >= PIECE_TYPES;
+		int type_reduced = type % PIECE_TYPES;
+		if (type_reduced == pawn) {
+			moves = pawn_moves(x, y, white);
+		}
+		else if (type_reduced == knight) {
+			moves = knight_moves(x, y, white);
+		}
+		else {
+			moves = sliding_piece(x, y, type_reduced, white);
+		}
+		move_cache[INDEX(x, y)] = moves;
 	}
-	else if (type_reduced == knight) {
-		moves = knight_moves(x, y, white);
-	}
-	else {
-		moves = sliding_piece(x, y, type_reduced, white);
-	}
-	return moves;
+	return move_cache[INDEX(x, y)];
 }
 
 u64 chess::pawn_moves(u32 x, u32 y, bool white)
 {
 	u64 moves = 0;
 	int dir = white ? +1 : -1;
+	u64 attacks = pawn_attacks(x, y, white);
+	if (en_passant) {
+		std::cout << "Hi\n";
+		en_passant &= attacks;
+		moves |= en_passant;
+		en_passant = 0;
+	}
+	attacks &= white ? black_pieces : white_pieces;
 	if(IN_FIELD(y + dir)) BOARD_SET(x, y + dir, moves);
+	// check if blocked
 	moves &= ~(white_pieces | black_pieces);
+	// if not blocked
 	if (moves && ((white && y == 1) || (!white && y == BOARD_DIM - 2))) {
 		if (IN_FIELD(y + dir * 2)) {
-			passant = true;
 			passant_take = true;
 			BOARD_SET(x, y + dir * 2, moves);
+			en_passant = 0;
 			BOARD_SET(x, y + dir, en_passant);
-			passant_take_index = vector2(x, y + dir);
+			passant_take_index = vector2(x, y + dir * 2);
 		}
 	}
 	moves &= ~(white_pieces | black_pieces);
-	u64 attacks = pawn_attacks(x, y, white);
-	passant_take = attacks & en_passant;
-	attacks &= white ? black_pieces : white_pieces;
-	return moves | attacks | passant_take;
+	return moves | attacks;
 }
 u64 chess::pawn_attacks(u32 x, u32 y, bool white)
 {
