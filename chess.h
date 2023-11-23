@@ -1,9 +1,8 @@
 #pragma once
-
-#ifndef DEFINITIONS 
-#define DEFINITIONS
 #include <iostream>
 #include <unordered_map>
+#include <assert.h>
+
 typedef uint64_t u64;
 typedef uint32_t u32;
 typedef uint16_t u16;
@@ -84,7 +83,6 @@ inline vector2::vector2(vector2i v)
 	x = (u32)v.x;
 	y = (u32)v.y;
 }
-#endif // DEFINITIONS
 
 class chess 
 {
@@ -98,6 +96,8 @@ public:
 	u64 pieces[pieces_max] = { 0 };
 	u64 white_pieces = 0;
 	u64 black_pieces = 0;
+	u64 all = 0;
+	u64 empty = 0;
 	u64 en_passant = 0;
 
 	u64 pawn_attacks(u32 x, u32 y, bool white);
@@ -106,7 +106,7 @@ public:
 	u64 knight_moves(u32 x, u32 y, bool white);
 	u64 sliding_piece(u32 x, u32 y, int type, bool white);
 	u64 legal_moves(u32 x, u32 y, int type);
-	void move(vector2 org, vector2 dst, u64& player_pieces);
+	void move(vector2 org, vector2 dst);
 	void init_board();
 	template<typename T> 
 	inline T translate_coords(T coords) 

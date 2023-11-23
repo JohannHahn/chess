@@ -107,12 +107,12 @@ void draw_board(Rectangle board_area)
 				move_highlights[counter++] = dst;
 			}
 			if (BOARD_AT(x, y, game.en_passant)) {
-				DrawCircle(x, y, 100, WHITE);
+				//DrawCircle(x, y, 100, WHITE);
 			}
 		}
 	}
 	for (u32 i = 0; i < counter; ++i) {
-		DrawTexturePro(select_tex, Rectangle(0, 0, (float)select_tex.width, (float)select_tex.height), move_highlights[i], {0,0}, 0, WHITE);
+		DrawTexturePro(select_tex, Rectangle(0, 0, (float)select_tex.width, (float)select_tex.height), move_highlights[i], {0,0}, 0, RED);
 	}
 }
 
@@ -156,11 +156,11 @@ void controls()
 		u64 move = 0;
 		BOARD_SET((u64)dst.x, (u64)dst.y, move);
 		move &= game.current_moves;
-		if (move && 
+		if (move &&
 			(game.selected_cell.x != dst.x || game.selected_cell.y != dst.y) && 
 			CheckCollisionPointRec(mouse_pos, board_area)) {
 			
-			game.move(game.selected_cell, dst, game.pieces[game.dragging_map]);
+			game.move(game.selected_cell, dst);
 		}
 		dragging = false;
 		game.selected = false;
