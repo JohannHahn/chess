@@ -106,9 +106,6 @@ void draw_board(Rectangle board_area)
 				Rectangle dst =	Rectangle(screen_coords.x * cell_size + cell_size / 2.f, screen_coords.y * cell_size + cell_size / 2.f, cell_size / 10.f, cell_size / 10.f);
 				move_highlights[counter++] = dst;
 			}
-			if (BOARD_AT(x, y, game.en_passant)) {
-				//DrawCircle(x, y, 100, WHITE);
-			}
 		}
 	}
 	for (u32 i = 0; i < counter; ++i) {
@@ -159,8 +156,15 @@ void controls()
 		if (move &&
 			(game.selected_cell.x != dst.x || game.selected_cell.y != dst.y) && 
 			CheckCollisionPointRec(mouse_pos, board_area)) {
-			
-			game.move(game.selected_cell, dst);
+			chess::move current_move;
+			BOARD_SET(game.selected_cell.x, game.selected_cell.y, current_move.org);
+			current_move.dst = move;
+			current_move.take = move;
+			if (game.dragging_map % PIECE_TYPES == pawn && std::abs((int)dst.y - (int)game.selected_cell.y) > 1) {
+				current_move.en_passant = true;
+				current_move.take = game.en_passant_target;
+			}
+			game.make_move(current_move);
 		}
 		dragging = false;
 		game.selected = false;

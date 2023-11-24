@@ -83,22 +83,31 @@ inline vector2::vector2(vector2i v)
 	x = (u32)v.x;
 	y = (u32)v.y;
 }
-
 class chess 
 {
 public:
+	struct move 
+	{
+		bool en_passant = false;
+		u64 org;
+		u64 dst;
+		u64 take;
+	};
+
 	bool board_flip = true;
 	bool player = false;
 	u64 current_moves = 0;
 	vector2 selected_cell = vector2();
 	bool selected = 0;
-	int dragging_map = 0;
+	int dragging_map =  0;
 	u64 pieces[pieces_max] = { 0 };
 	u64 white_pieces = 0;
 	u64 black_pieces = 0;
 	u64 all = 0;
 	u64 empty = 0;
-	u64 en_passant = 0;
+	u64 en_passant_attacks = 0;
+	u64 en_passant_target = 0;
+	move last_move = { 0 };
 
 	u64 pawn_attacks(u32 x, u32 y, bool white);
 	u64 get_piece_mask(bool white);
@@ -106,7 +115,7 @@ public:
 	u64 knight_moves(u32 x, u32 y, bool white);
 	u64 sliding_piece(u32 x, u32 y, int type, bool white);
 	u64 legal_moves(u32 x, u32 y, int type);
-	void move(vector2 org, vector2 dst);
+	void make_move(move current_move);
 	void init_board();
 	template<typename T> 
 	inline T translate_coords(T coords) 
@@ -127,8 +136,7 @@ public:
 
 private:
 	vector2i sliding_dirs[4] = { {-1, 1}, {1, 1}, {1, 0}, {0, 1}};
-	bool passant_take = false;
-	vector2 passant_take_index = { (u32)0, (u32)0 };
+	bool pawn_double_jump = false;
 	std::unordered_map<u64, u64> move_cache;
 };
 

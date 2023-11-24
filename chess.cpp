@@ -20,32 +20,35 @@ void chess::init_board()
 	all = white_pieces | black_pieces;
 	empty = ~(all);
 }
-void chess::move(vector2 org, vector2 dst)
+void chess::make_move(move current_move)
 {
 	u64 player_pieces = player == white ? white_pieces : black_pieces;
 	u64 enemy_pieces = all & ~(player_pieces);
-	vector2 take = dst;
+	pawn_double_jump = true;
+	en_passant_attacks = 0;
+	BOARD_SET(x, y + dir, en_passant_attacks);
+	en_passant_target = 0;
+	BOARD_SET(x, y + dir * 2, en_passant_target);
 	for (int i = 0; i < pieces_max; ++i) {
-		BOARD_RESET(take.x, take.y, pieces[i]);
+		pieces[i] &= ~(current_move.dst);
+		pieces[i] &= ~(current_move.take);
 	}
-	if (BOARD_AT(dst.x, dst.y, get_piece_mask(!player))) {
-		std::cout << "wtf `?\n";
-	}
+
 	for (int i = 0; i < pieces_max; ++i) {
-		if (BOARD_AT(org.x, org.y, pieces[i])) {
-			BOARD_RESET(org.x, org.y, pieces[i]);
-			BOARD_SET(dst.x, dst.y, pieces[i]);
+		if (current_move.org & pieces[i]) {
+			pieces[i] &= ~(current_move.org);
+			pieces[i] |= current_move.dst;
+			break;
 		}
 	}
 	white_pieces = get_piece_mask(white);
+	black_pieces = get_piece_mask(black);
 	assert(!(white_pieces & black_pieces) && "pieces overlap");
 	all = white_pieces | black_pieces;
 	empty = ~(all);
 	player = !player;
+	last_move = current_move;
 	move_cache.clear();
-	std::cout << "en_passant = " << en_passant << "\n";
-	std::cout << "passant_take = " << passant_take << "\n";
-	std::cout << "passtant take pos = " << passant_take_index.x << ", " << passant_take_index.y << "\n";
 }
 u64 chess::legal_moves(u32 x, u32 y, int type)
 {
@@ -74,17 +77,15 @@ u64 chess::pawn_moves(u32 x, u32 y, bool white)
 	int dir = white ? +1 : -1;
 	u64 attacks = pawn_attacks(x, y, white);
 	if(IN_FIELD(y + dir)) BOARD_SET(x, y + dir, moves);
-	// check if blocked
 	moves &= empty;
-	// if not blocked
+	if (pawn_double_jump) {
+		attacks |= en_passant_attacks;
+		pawn_double_jump = false;
+	}
 	if (moves && ((white && y == 1) || (!white && y == BOARD_DIM - 2))) {
 		if (IN_FIELD(y + dir * 2)) {
 			BOARD_SET(x, y + dir * 2, moves);
 			moves &= empty;
-			passant_take = true;
-			en_passant = 0;
-			BOARD_SET(x, y + dir, en_passant);
-			passant_take_index = vector2(x, y + dir * 2);
 		}
 	}
 	return moves | attacks;
