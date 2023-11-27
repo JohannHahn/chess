@@ -20,7 +20,7 @@ typedef uint8_t u8;
 
 enum 
 {
-	black, white  
+	white, black 
 };
 enum
 {
@@ -88,55 +88,42 @@ class chess
 public:
 	struct move 
 	{
-		bool en_passant = false;
-		u64 org;
-		u64 dst;
-		u64 take;
+		u64 org = 0;
+		u64 dst = 0;
+		u64 pawn_double_jump = 0;
+		u64 en_passant_attack = 0;
 	};
 
-	bool board_flip = true;
 	bool player = false;
-	u64 current_moves = 0;
+	move current_moves = { 0 };
 	vector2 selected_cell = vector2();
 	bool selected = 0;
-	int dragging_map =  0;
+	int selected_type =  0;
 	u64 pieces[pieces_max] = { 0 };
 	u64 white_pieces = 0;
 	u64 black_pieces = 0;
+	u64 rook_moved = 0;
 	u64 all = 0;
 	u64 empty = 0;
-	u64 en_passant_attacks = 0;
-	u64 en_passant_target = 0;
+	u64 white_sees = 0;
+	u64 black_sees = 0;
 	move last_move = { 0 };
-
+	std::vector<move> all_moves = {};
+	std::vector<int> taken_pieces = {};
+ 
 	u64 pawn_attacks(u32 x, u32 y, bool white);
 	u64 get_piece_mask(bool white);
-	u64 pawn_moves(u32 x, u32 y, bool white);
-	u64 knight_moves(u32 x, u32 y, bool white);
-	u64 sliding_piece(u32 x, u32 y, int type, bool white);
-	u64 legal_moves(u32 x, u32 y, int type);
-	void make_move(move current_move);
+	move pawn_moves(u32 x, u32 y, bool white);
+	move knight_moves(u32 x, u32 y, bool white);
+	move sliding_piece(u32 x, u32 y, int type, bool white);
+	move legal_moves(u32 x, u32 y, int type);
+	void make_move(move move);
 	void init_board();
-	template<typename T> 
-	inline T translate_coords(T coords) 
-	{
-		T result = T();
-		switch (board_flip) {
-		case false:
-			result.x = coords.x;
-			result.y = (BOARD_DIM - 1) - coords.y;
-			break;
-		case true:
-			result.x = (BOARD_DIM - 1) - coords.x;
-			result.y = coords.y;
-			break;
-		}
-		return result;
-	}
+	void scan_board();
+	bool check_for_check(chess::move move, bool white);
 
 private:
 	vector2i sliding_dirs[4] = { {-1, 1}, {1, 1}, {1, 0}, {0, 1}};
-	bool pawn_double_jump = false;
-	std::unordered_map<u64, u64> move_cache;
+	std::unordered_map<u64, move> move_cache;
 };
 

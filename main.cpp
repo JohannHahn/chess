@@ -11,6 +11,7 @@ Rectangle board_area;
 Rectangle move_highlights[BOARD_DIM * BOARD_DIM] = {0};
 const char* assets_path = "assets\\";
 const char* img_path = "assets\\img\\";
+bool board_flip = false;
 float cell_size;
 Color dark = BROWN;
 Color light = GRAY;
@@ -19,6 +20,22 @@ chess game;
 
 vector2f draggie;
 bool dragging = 0;
+template<typename T> 
+T translate_coords(T coords) 
+{
+	T result = T();
+	switch (board_flip) {
+	case false:
+		result.x = coords.x;
+		result.y = (BOARD_DIM - 1) - coords.y;
+		break;
+	case true:
+		result.x = (BOARD_DIM - 1) - coords.x;
+		result.y = coords.y;
+		break;
+	}
+	return result;
+}
 
 void load_assets() 
 {
@@ -88,20 +105,25 @@ void draw_board(Rectangle board_area)
 			}
 			float small_cell = cell_size * 0.8f;
 			float cell_diff = cell_size - small_cell;
-			vector2f screen_coords = game.translate_coords(vector2f(x, y));
+			vector2f screen_coords = translate_coords(vector2f(x, y));
 			Rectangle dst = Rectangle(
 				screen_coords.x * cell_size + cell_diff / 2.f, 
 				screen_coords.y * cell_size + cell_diff / 2.f, 
 				small_cell, small_cell);
 			if (dragging && game.selected_cell.x == x && game.selected_cell.y == y) {
-				vector2f mouse_coords = game.translate_coords(draggie);
+				vector2f mouse_coords = translate_coords(draggie);
 				dst.x = mouse_coords.x * cell_size + cell_diff / 2.f - cell_size / 2.f;
 				dst.y = mouse_coords.y * cell_size + cell_diff / 2.f - cell_size / 2.f;
 			}
 			if (tex >= 0) {
 				draw_piece(tex, dst);
 			}
-			if (game.selected && BOARD_AT(x, y, game.current_moves))
+			if (game.selected && BOARD_AT(x, y, game.white_sees))
+			{
+				Rectangle dst =	Rectangle(screen_coords.x * cell_size + cell_size / 2.f, screen_coords.y * cell_size + cell_size / 2.f, cell_size / 10.f, cell_size / 10.f);
+				move_highlights[counter++] = dst;
+			}
+			if (game.selected && BOARD_AT(x, y, game.black_sees))
 			{
 				Rectangle dst =	Rectangle(screen_coords.x * cell_size + cell_size / 2.f, screen_coords.y * cell_size + cell_size / 2.f, cell_size / 10.f, cell_size / 10.f);
 				move_highlights[counter++] = dst;
@@ -132,11 +154,11 @@ void controls()
 	if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(mouse_pos, board_area)) {
 		float x = std::floor(mouse_pos.x / cell_size);
 		float y = std::floor(mouse_pos.y / cell_size);
-		vector2 game_coords = game.translate_coords(vector2(x,y));
+		vector2 game_coords = translate_coords(vector2(x,y));
 		int start = (game.player ? 0 : PIECE_TYPES);
 		for (int i = start; i < start + PIECE_TYPES; ++i) {
 			if (BOARD_AT(game_coords.x, game_coords.y, game.pieces[i])) {
-				game.dragging_map = i;
+				game.selected_type = i;
 				draggie = game_coords;
 				game.current_moves = game.legal_moves(game_coords.x, game_coords.y, i);
 				game.selected_cell = game_coords;
@@ -147,33 +169,30 @@ void controls()
 		}
 	}
 	if (dragging && IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
-		vector2 dst = game.board_flip ? 
+		vector2 dst = board_flip ? 
 			vector2(std::ceil(draggie.x), std::floor(draggie.y)) :
 			vector2(std::floor(draggie.x), std::ceil(draggie.y));
 		u64 move = 0;
 		BOARD_SET((u64)dst.x, (u64)dst.y, move);
-		move &= game.current_moves;
+		move &= game.current_moves.dst;
 		if (move &&
 			(game.selected_cell.x != dst.x || game.selected_cell.y != dst.y) && 
 			CheckCollisionPointRec(mouse_pos, board_area)) {
 			chess::move current_move;
 			BOARD_SET(game.selected_cell.x, game.selected_cell.y, current_move.org);
 			current_move.dst = move;
-			current_move.take = move;
-			if (game.dragging_map % PIECE_TYPES == pawn && std::abs((int)dst.y - (int)game.selected_cell.y) > 1) {
-				current_move.en_passant = true;
-				current_move.take = game.en_passant_target;
-			}
+			current_move.pawn_double_jump = game.current_moves.pawn_double_jump;
+			current_move.en_passant_attack = game.current_moves.en_passant_attack;
 			game.make_move(current_move);
 		}
 		dragging = false;
 		game.selected = false;
-		game.current_moves = 0;
+		game.current_moves.dst = 0;
 	}
 	if (dragging && IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
 		float x = mouse_pos.x / cell_size;
 		float y = mouse_pos.y / cell_size;
-		draggie = game.translate_coords(vector2f(x, y));
+		draggie = translate_coords(vector2f(x, y));
 	}
 }
 
@@ -186,6 +205,7 @@ int main()
 	resize();
 	load_assets();
 	game.init_board();
+
 	while (!WindowShouldClose()) {
 		controls();
 		ClearBackground(BLACK);
