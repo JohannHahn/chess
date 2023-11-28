@@ -118,12 +118,7 @@ void draw_board(Rectangle board_area)
 			if (tex >= 0) {
 				draw_piece(tex, dst);
 			}
-			if (game.selected && BOARD_AT(x, y, game.white_sees))
-			{
-				Rectangle dst =	Rectangle(screen_coords.x * cell_size + cell_size / 2.f, screen_coords.y * cell_size + cell_size / 2.f, cell_size / 10.f, cell_size / 10.f);
-				move_highlights[counter++] = dst;
-			}
-			if (game.selected && BOARD_AT(x, y, game.black_sees))
+			if (game.selected && BOARD_AT(x, y, game.current_moves.dst))
 			{
 				Rectangle dst =	Rectangle(screen_coords.x * cell_size + cell_size / 2.f, screen_coords.y * cell_size + cell_size / 2.f, cell_size / 10.f, cell_size / 10.f);
 				move_highlights[counter++] = dst;

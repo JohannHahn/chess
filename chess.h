@@ -90,6 +90,7 @@ public:
 	{
 		u64 org = 0;
 		u64 dst = 0;
+		u64 attacks = 0;
 		u64 pawn_double_jump = 0;
 		u64 en_passant_attack = 0;
 	};
@@ -98,6 +99,7 @@ public:
 	move current_moves = { 0 };
 	vector2 selected_cell = vector2();
 	bool selected = 0;
+	bool in_check = false;
 	int selected_type =  0;
 	u64 pieces[pieces_max] = { 0 };
 	u64 white_pieces = 0;
@@ -107,20 +109,21 @@ public:
 	u64 empty = 0;
 	u64 white_sees = 0;
 	u64 black_sees = 0;
+	u64 sees_king = 0;
 	move last_move = { 0 };
 	std::vector<move> all_moves = {};
 	std::vector<int> taken_pieces = {};
  
-	u64 pawn_attacks(u32 x, u32 y, bool white);
+	u64 pawn_attacks(u32 x, u32 y, move& move);
 	u64 get_piece_mask(bool white);
-	move pawn_moves(u32 x, u32 y, bool white);
-	move knight_moves(u32 x, u32 y, bool white);
-	move sliding_piece(u32 x, u32 y, int type, bool white);
+	move pawn_moves(u32 x, u32 y);
+	move knight_moves(u32 x, u32 y);
+	move sliding_piece(u32 x, u32 y, int type);
 	move legal_moves(u32 x, u32 y, int type);
 	void make_move(move move);
 	void init_board();
-	void scan_board();
-	bool check_for_check(chess::move move, bool white);
+	void scan_board(bool player);
+	bool check_for_check();
 
 private:
 	vector2i sliding_dirs[4] = { {-1, 1}, {1, 1}, {1, 0}, {0, 1}};

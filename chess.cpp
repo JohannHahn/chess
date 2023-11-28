@@ -21,29 +21,35 @@ void chess::init_board()
 	empty = ~(all);
 }
 
-void chess::scan_board()
+void chess::scan_board(bool player)
 {
 	u32 start = (player == white ? PIECE_TYPES : 0);
-	u64 ally = white ? white_pieces : black_pieces;
+	u64 ally = player == white ? white_pieces : black_pieces;
+	u64 king = player == white ? pieces[w_king] : pieces[b_king];
+	u64* player_sees = player == white ? &white_sees : &black_sees;
 	white_sees = 0;
 	black_sees = 0;
-	u64* player_sees = player == white ? &white_sees : &black_sees;
+	sees_king = 0;
 	for (u32 y = 0; y < BOARD_DIM; ++y) {
 		for (u32 x = 0; x < BOARD_DIM; ++x) {
 			for (u32 i = start; i < start + PIECE_TYPES; ++i) {
 				if (BOARD_AT(x, y, pieces[i])) {
-					*player_sees |= legal_moves(x, y, i).dst;
+					move m = legal_moves(x, y, i);
+					*player_sees |= m.attacks;
+					if (king & m.attacks) {
+						sees_king |= m.attacks;
+					}
 				}
 			}
 		}
 	}
-	//*player_sees &= ~(ally);
+	sees_king &= ~(king);
 }
 
-bool chess::check_for_check(chess::move move, bool white) 
+bool chess::check_for_check() 
 {
-	u64 king = white ? pieces[w_king] : pieces[b_king];
-	u64 enemy_sees = white ? black_sees : white_sees;
+	u64 king = player == white ? pieces[w_king] : pieces[b_king];
+	u64 enemy_sees = player == white ? black_sees : white_sees;
 	return king & enemy_sees;
 }
 void chess::make_move(move move) 
@@ -53,7 +59,7 @@ void chess::make_move(move move)
 		take = last_move.dst;
 	}
 	for (int i = 0; i < pieces_max; ++i) {
-		if (pieces[i] & take) {
+		if (pieces[i] & take) { 
 			pieces[i] &= ~(take);
 			taken_pieces.push_back(i);
 		}
@@ -66,48 +72,60 @@ void chess::make_move(move move)
 			break;
 		}
 	}
-
+	//setup for next move
 	white_pieces = get_piece_mask(white);
 	black_pieces = get_piece_mask(black);
 	assert(!(white_pieces & black_pieces) && "pieces overlap");
 	all = white_pieces | black_pieces;
 	empty = ~(all);
-	player = !player;
 	last_move = move;
 	all_moves.push_back(move);
 	move_cache.clear();
-	scan_board();
+	scan_board(player);
+	player = !player;
+	in_check = check_for_check();
+	if (in_check) {
+		u64 king = player == white ? pieces[w_king] : pieces[b_king];
+		for (auto& p : move_cache) {
+			if (BOARD_AT_I(p.first, king)) {
+				p.second.dst &= ~(sees_king);
+			}
+			p.second.dst &= sees_king;
+		}
+	}
+	scan_board(player);
 }
 chess::move chess::legal_moves(u32 x, u32 y, int type)
 {
 	move moves = { 0 };
 	if (!move_cache.contains(INDEX(x, y))) {
 
-		bool white = type >= PIECE_TYPES;
 		int type_reduced = type % PIECE_TYPES;
 		if (type_reduced == pawn) {
-			moves = pawn_moves(x, y, white);
+			moves = pawn_moves(x, y);
 		}
 		else if (type_reduced == knight) {
-			moves = knight_moves(x, y, white);
+			moves = knight_moves(x, y);
 		}
 		else {
-			moves = sliding_piece(x, y, type_reduced, white);
+			moves = sliding_piece(x, y, type_reduced);
+		}
+		if (in_check) {
 		}
 		move_cache[INDEX(x, y)] = moves;
 	}
 	return move_cache[INDEX(x, y)];
 }
 
-chess::move chess::pawn_moves(u32 x, u32 y, bool white)
+chess::move chess::pawn_moves(u32 x, u32 y)
 {
 	move moves = { 0 };
 	BOARD_SET(x, y, moves.org);
-	int dir = white ? +1 : -1;
-	u64 attacks = pawn_attacks(x, y, white);
+	int dir = player == white ? +1 : -1;
+	u64 attacks = pawn_attacks(x, y, moves);
 	if(IN_FIELD(y + dir)) BOARD_SET(x, y + dir, moves.dst);
 	moves.dst &= empty;
-	if (moves.dst && ((white && y == 1) || (!white && y == BOARD_DIM - 2))) {
+	if (moves.dst && ((player == white && y == 1) || (player != white && y == BOARD_DIM - 2))) {
 		if (IN_FIELD(y + dir * 2)) {
 			BOARD_SET(x, y + dir * 2, moves.dst);
 			moves.dst &= empty;
@@ -120,19 +138,20 @@ chess::move chess::pawn_moves(u32 x, u32 y, bool white)
 	moves.dst |= attacks;
 	return moves;
 }
-u64 chess::pawn_attacks(u32 x, u32 y, bool white)
+u64 chess::pawn_attacks(u32 x, u32 y, move& move)
 {
 	u64 attacks = 0;
-	int dir = white ? +1 : -1;
+	int dir = player == white ? +1 : -1;
 	if (IN_FIELD(y + dir)) {
 		if (IN_FIELD(x + 1)) BOARD_SET(x + 1, y + dir, attacks);
 		if (IN_FIELD(x - 1)) BOARD_SET(x - 1, y + dir, attacks);
 	}
-	attacks &= white ? black_pieces : white_pieces;
+	move.attacks = attacks;
+	attacks &= player == white ? black_pieces : white_pieces;
 	if (last_move.pawn_double_jump & last_move.dst) {
 		u64 t1 = 0;
 		u64 t2 = 0;
-		u64 y_passant_possible = white ? 4 : 3;
+		u64 y_passant_possible = player == white ? 4 : 3;
 		BOARD_SET(x + 1, y, t1);
 		if (x > 1) {
 			BOARD_SET(x - 1, y, t2);
@@ -145,7 +164,7 @@ u64 chess::pawn_attacks(u32 x, u32 y, bool white)
 	return attacks;
 }
 
-chess::move chess::knight_moves(u32 x, u32 y, bool white)
+chess::move chess::knight_moves(u32 x, u32 y)
 {
 	move moves = { 0 };
 	BOARD_SET(x, y, moves.org);
@@ -161,10 +180,11 @@ chess::move chess::knight_moves(u32 x, u32 y, bool white)
 			}
 		}
 	}
-	moves.dst &= ~(white ? white_pieces : black_pieces);
+	moves.dst &= ~(player == white ? white_pieces : black_pieces);
+	moves.attacks = moves.dst;
 	return moves;
 }
-chess::move chess::sliding_piece(u32 x, u32 y, int type, bool white)
+chess::move chess::sliding_piece(u32 x, u32 y, int type)
 {
 	move moves = { 0 };
 	BOARD_SET(x, y, moves.org);
@@ -172,8 +192,8 @@ chess::move chess::sliding_piece(u32 x, u32 y, int type, bool white)
 	u32 start = 0;
 	u32 range = 8;
 	u64 dir_open = SIZE_MAX;
-	u64 enemy = white ? black_pieces : white_pieces;
-	u64 ally = white ? white_pieces: black_pieces;
+	u64 enemy = player == white ? black_pieces : white_pieces;
+	u64 ally = player == white ? white_pieces: black_pieces;
 	if (type == king) {
 		num_dirs = 4;
 		range = 1;
@@ -207,12 +227,13 @@ chess::move chess::sliding_piece(u32 x, u32 y, int type, bool white)
 		}
 	}
 	assert(!(moves.dst & ally) && "Sliding piece can take its own piece");
+	moves.attacks = moves.dst;
 	return moves;
 }
-u64 chess::get_piece_mask(bool white)
+u64 chess::get_piece_mask(bool color)
 {
 	u64 result = 0;
-	int start = white ? PIECE_TYPES : 0;
+	int start = color == white ? PIECE_TYPES : 0;
 	for (int i = start; i < start + PIECE_TYPES; ++i) {
 		result |= pieces[i];
 	}
